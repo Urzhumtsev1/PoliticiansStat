@@ -7,13 +7,14 @@ from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 from time import sleep
 import csv
+import re
 
 
 class MyParser(object):
     def __init__(self, url):
-            #options = webdriver.ChromeOptions()
-            #options.add_argument("--headless")  # чтобы не открывалось окно браузера
-            self.driver = webdriver.Chrome(executable_path='C:\Program Files\chromedriver.exe')
+            options = webdriver.ChromeOptions()
+            options.add_argument("--headless")  # чтобы не открывалось окно браузера
+            self.driver = webdriver.Chrome(chrome_options=options, executable_path='C:\Program Files\chromedriver.exe')
             try:
                 print("Запуск парсера     ", end='', flush=True)
                 self.driver.set_page_load_timeout(30)
@@ -21,14 +22,16 @@ class MyParser(object):
             except TimeoutException as ex:
                 print("\nСайт не отвечает.\n" + str(ex))
                 self.driver.close()
+                self.driver.quit()
 
     def service(self, start_date, end_date, level, region):
         # TODO - Разбить на отдельные методы - метод service и сделать там try except.
-        # TODO - Сделать еще фильтров
+        # TODO - Сделать еще фильтров,
         print("OK")
         sleep(1)
         print("Выставление параметров     ", end='', flush=True)
         # Очищаем форму начальной даты и вставляем необходимые параметры
+        # не стоит вводить дату ранее 2 сентября 2007 года (тогда был другой вид отчета)
         start_date_element = self.driver.find_element_by_id("start_date")
         start_date_element.clear()
         start_date_element.send_keys(start_date)
@@ -49,12 +52,25 @@ class MyParser(object):
         return self.driver.page_source
 
     def service2(self):
-        input_element = self.driver.find_element_by_id("csearch_vidvig")
-        input_element.send_keys("в")
-        input_element.submit()
-        # TODO - Тут нужно возвращать данные с этой страницы =220
-        # и затем из этих данных формировать csv
-        return self
+        # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
+        # TODO - нужно исклучить референдумы
+        if '=221' in self.driver.current_url:
+            s = self.driver.page_source
+            result = re.findall(r'table-[1-2]', s)
+            element = self.driver.find_element_by_id(result[0])
+        else:
+            input_element = self.driver.find_element_by_id("csearch_vidvig")
+            input_element.send_keys("в")
+            input_element.submit()
+            s = self.driver.page_source
+            result1 = re.findall(r'table-[1-2]', s)
+            element = self.driver.find_element_by_id(result1[0])
+            pattern = r"\d+\s[А-Яа-я\-?]+\s[А-Яа-я]+\s[А-Яа-я?]+\s\d{2}\.\d{2}\.\d{4}.*"
+            # TODO - вывести в новую функцию, подправить regexp (сейчас не парсит если кандидат без отчества + нужны еще шаблоны на другой тип выборов)
+            result2 = re.findall(pattern, element.text)
+            # TODO - Тут нужно возвращать данные с этой страницы =220
+            # и затем из этих данных формировать csv
+            return result2
 
     def finish(self):
         self.driver.close()
@@ -80,6 +96,7 @@ class Soup(object):
     def __init__(self, html):
         self.blank = BeautifulSoup(html, "html.parser")
 
+
     def soup1(self):
         # В этом цикле BS возвращает список найденых выборов и ссылок (Это еще не те ссылки, что нам нужны.
         # Хотя список найденых выборов нам уже будет нужен для конечного отчета.
@@ -88,7 +105,6 @@ class Soup(object):
         for link in self.blank.find_all('a'):
             tmp = link.get('href')
             tmp2 = link.get_text()
-            # FIXME - в функции заменить if statement на регулярные выражения, так как это не универсально.
             if len(tmp) < 50:
                 pass
             else:
@@ -96,7 +112,6 @@ class Soup(object):
         return vib_name
 
     def soup2(self):
-        # FIXME - в функции заменить if statement на регулярные выражения, так как это не универсально.
         vib_name = []
         for link in self.blank.find_all('a'):
             tmp = link.get('href')
@@ -106,11 +121,18 @@ class Soup(object):
                 pass
         return vib_name
 
+# Этот код создает список из всех строк содержащихся в html
+#    def soup3(self):
+#        candidate_list = []
+#        for string in self.blank.stripped_strings:
+#           candidate_list.append(string)
+
+
 
 def req():
     url = "http://www.vybory.izbirkom.ru/region/izbirkom"
     params = begin()
-    link = Soup(MyParser(url).service(params[0], params[1], params[2], params[3])).soup1()
+    link = Soup(MyParser(url).service(params[0], params[1], params[2], params[3])).soup1()  # Этот кошмар надо упростить
     link2 = []
     for i in range(len(link)):
         response = requests.get(link[i][1])
@@ -125,10 +147,11 @@ def req2():
         a = MyParser(link[i]).service2()
         print(a)
 
-# def write_csv(data):
-#     with open('vibory.csv', 'a') as f:
-#         writer = csv.writer(f)
-#         writer.writerow(data)
+
+def write_csv(data):
+    with open('vibory.csv', 'a') as f:
+        writer = csv.writer(f)
+        writer.writerow(data)
 
 
 if __name__ == '__main__':

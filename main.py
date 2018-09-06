@@ -8,27 +8,26 @@ from bs4 import BeautifulSoup
 from time import sleep
 import csv
 import re
+from multiprocessing import Pool
 
 
 class MyParser(object):
-    def __init__(self, url):
+    def __init__(self, *url):
             options = webdriver.ChromeOptions()
             options.add_argument("--headless")  # чтобы не открывалось окно браузера
             self.driver = webdriver.Chrome(chrome_options=options, executable_path='C:\Program Files\chromedriver.exe')
             try:
-                print("Запуск парсера     ", end='', flush=True)
                 self.driver.set_page_load_timeout(30)
-                self.driver.get(url)
+                self.driver.get(url[0])
             except TimeoutException as ex:
                 print("\nСайт не отвечает.\n" + str(ex))
                 self.driver.close()
                 self.driver.quit()
 
+
     def service(self, start_date, end_date, level, region):
         # TODO - Разбить на отдельные методы - метод service и сделать там try except.
         # TODO - Сделать еще фильтров,
-        print("OK")
-        sleep(1)
         print("Выставление параметров     ", end='', flush=True)
         # Очищаем форму начальной даты и вставляем необходимые параметры
         # не стоит вводить дату ранее 2 сентября 2007 года (тогда был другой вид отчета)
@@ -51,30 +50,30 @@ class MyParser(object):
         print("OK")
         return self.driver.page_source
 
+    # TODO - ПЕРЕДЕЛАТЬ НА BS
     def service2(self):
+        s = self.driver.page_source
         # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
-        # TODO - нужно исклучить референдумы
-        if '=221' in self.driver.current_url:
-            s = self.driver.page_source
+        if '=221' in s:
+            # TODO - тут не доделано
             result = re.findall(r'table-[1-2]', s)
             element = self.driver.find_element_by_id(result[0])
-        else:
+            return print(reg_exp1(element))
+        elif '=220' in s:
             input_element = self.driver.find_element_by_id("csearch_vidvig")
             input_element.send_keys("в")
             input_element.submit()
-            s = self.driver.page_source
             result1 = re.findall(r'table-[1-2]', s)
             element = self.driver.find_element_by_id(result1[0])
-            pattern = r"\d+\s[А-Яа-я\-?]+\s[А-Яа-я]+\s[А-Яа-я?]+\s\d{2}\.\d{2}\.\d{4}.*"
-            # TODO - вывести в новую функцию, подправить regexp (сейчас не парсит если кандидат без отчества + нужны еще шаблоны на другой тип выборов)
-            result2 = re.findall(pattern, element.text)
-            # TODO - Тут нужно возвращать данные с этой страницы =220
-            # и затем из этих данных формировать csv
-            return result2
+            return print(reg_exp1(element))  # вызываем функцию поиска кандидатов
 
-    def finish(self):
-        self.driver.close()
-        self.driver.quit()
+
+# Ищем по шаблону в html кандидатов
+def reg_exp1(data):
+    # TODO - сейчас не парсит если кандидат без отчества
+    pattern = r"\d+\s[А-Яа-я\-?]+\s[А-Яа-я]+\s[А-Яа-я?]+\s\d{2}\.\d{2}\.\d{4}.*"
+    result2 = re.findall(pattern, data.text)
+    return result2
 
 
 def begin():
@@ -95,7 +94,6 @@ def begin():
 class Soup(object):
     def __init__(self, html):
         self.blank = BeautifulSoup(html, "html.parser")
-
 
     def soup1(self):
         # В этом цикле BS возвращает список найденых выборов и ссылок (Это еще не те ссылки, что нам нужны.
@@ -121,31 +119,27 @@ class Soup(object):
                 pass
         return vib_name
 
-# Этот код создает список из всех строк содержащихся в html
-#    def soup3(self):
-#        candidate_list = []
-#        for string in self.blank.stripped_strings:
-#           candidate_list.append(string)
-
-
 
 def req():
     url = "http://www.vybory.izbirkom.ru/region/izbirkom"
     params = begin()
     link = Soup(MyParser(url).service(params[0], params[1], params[2], params[3])).soup1()  # Этот кошмар надо упростить
     link2 = []
-    for i in range(len(link)):
+    for i in range(len(link)):  # Получаем ссылки через, которые попадем на страницу со списком кандидатов
         response = requests.get(link[i][1])
-        link2_raw = Soup(response.text).soup2()  # Тут цикл в цикле. Надо вытащить soup2
+        link2_raw = Soup(response.text).soup2()
         link2.append(link2_raw[0])
     return link2
 
 
+def sdf(url):
+    return MyParser(url).service2()
+
 def req2():
     link = req()
-    for i in range(len(link)):
-        a = MyParser(link[i]).service2()
-        print(a)
+    # for i in range(len(link)):
+    with Pool(10) as p:
+        p.map(sdf, link)
 
 
 def write_csv(data):

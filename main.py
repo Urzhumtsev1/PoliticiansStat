@@ -8,17 +8,18 @@ from bs4 import BeautifulSoup
 from time import sleep
 import csv
 import re
-from multiprocessing import Pool
+# from multiprocessing import Pool
+import asyncio
 
 
 class MyParser(object):
-    def __init__(self, *url):
+    def __init__(self, url):
             options = webdriver.ChromeOptions()
             options.add_argument("--headless")  # чтобы не открывалось окно браузера
             self.driver = webdriver.Chrome(chrome_options=options, executable_path='C:\Program Files\chromedriver.exe')
             try:
                 self.driver.set_page_load_timeout(30)
-                self.driver.get(url[0])
+                self.driver.get(url)
             except TimeoutException as ex:
                 print("\nСайт не отвечает.\n" + str(ex))
                 self.driver.close()
@@ -50,12 +51,10 @@ class MyParser(object):
         print("OK")
         return self.driver.page_source
 
-    # TODO - ПЕРЕДЕЛАТЬ НА BS
     def service2(self):
         s = self.driver.page_source
         # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
         if '=221' in s:
-            # TODO - тут не доделано
             result = re.findall(r'table-[1-2]', s)
             element = self.driver.find_element_by_id(result[0])
             return print(reg_exp1(element))
@@ -132,14 +131,15 @@ def req():
     return link2
 
 
-def sdf(url):
+async def req2(url):  # обернем метод класса в функцию, чтобы передать в map()
     return MyParser(url).service2()
 
-def req2():
-    link = req()
-    # for i in range(len(link)):
-    with Pool(10) as p:
-        p.map(sdf, link)
+
+# def req2():
+#     link = req()
+#     # for i in range(len(link)):
+#     with Pool(10) as p:
+#         p.map(req3, link)
 
 
 def write_csv(data):
@@ -149,4 +149,10 @@ def write_csv(data):
 
 
 if __name__ == '__main__':
-    req2()
+    loop = asyncio.get_event_loop()
+    link = req()
+    for i in range(len(link)):
+        task = [req2(link[i])]
+        loop.run_until_complete(asyncio.wait(task))
+    loop.close()
+

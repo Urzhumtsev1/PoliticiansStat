@@ -6,9 +6,9 @@ import requests
 from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 from time import sleep
-import csv
 import re
 from multiprocessing import Pool
+import dbcon
 
 
 class MyParser(object):
@@ -50,22 +50,33 @@ class MyParser(object):
         print("OK")
         return self.driver.page_source
 
-    # TODO - ПЕРЕДЕЛАТЬ НА BS
     def service2(self):
-        s = self.driver.page_source
-        # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
-        if '=221' in s:
-            # TODO - тут не доделано
-            result = re.findall(r'table-[1-2]', s)
-            element = self.driver.find_element_by_id(result[0])
-            return print(reg_exp1(element))
-        elif '=220' in s:
-            input_element = self.driver.find_element_by_id("csearch_vidvig")
-            input_element.send_keys("в")
-            input_element.submit()
-            result1 = re.findall(r'table-[1-2]', s)
-            element = self.driver.find_element_by_id(result1[0])
-            return print(reg_exp1(element))  # вызываем функцию поиска кандидатов
+        try:
+            s = self.driver.page_source
+            # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
+            if '=221' in s:
+                # TODO - тут не доделано
+                result = re.findall(r'table-[1-2]', s)
+                element = self.driver.find_element_by_id(result[0])
+                print(element)
+                db = dbcon.DbAdmin()
+                db.set_func()
+                db.start_func(1, '23.06.2005', reg_exp1(element)[0], 'sfd')
+                db.close()
+                return print('OK')
+            elif '=220' in s:
+                input_element = self.driver.find_element_by_id("csearch_vidvig")
+                input_element.send_keys("в")
+                input_element.submit()
+                result1 = re.findall(r'table-[1-2]', s)
+                element = self.driver.find_element_by_id(result1[0])
+                db = dbcon.DbAdmin()
+                db.set_func()
+                db.start_func(2, '22.06.2005', reg_exp1(element)[0], 'sfddf')
+                db.close()
+                return print('OK')  # вызываем функцию поиска кандидатов
+        finally:
+            self.driver.quit()
 
 
 # Ищем по шаблону в html кандидатов
@@ -98,7 +109,6 @@ class Soup(object):
     def soup1(self):
         # В этом цикле BS возвращает список найденых выборов и ссылок (Это еще не те ссылки, что нам нужны.
         # Хотя список найденых выборов нам уже будет нужен для конечного отчета.
-        # Далее мы будем использовать requests для перехода по ним)
         vib_name = []
         for link in self.blank.find_all('a'):
             tmp = link.get('href')
@@ -132,21 +142,16 @@ def req():
     return link2
 
 
-def sdf(url):
+def req2(url):
     return MyParser(url).service2()
 
-def req2():
+
+def req3():
     link = req()
     # for i in range(len(link)):
-    with Pool(10) as p:
-        p.map(sdf, link)
-
-
-def write_csv(data):
-    with open('vibory.csv', 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(data)
+    with Pool(5) as p:
+        p.map(req2, link)
 
 
 if __name__ == '__main__':
-    req2()
+    req3()

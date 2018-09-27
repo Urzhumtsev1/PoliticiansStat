@@ -13,10 +13,10 @@ class DbAdmin:
         self.cursor = self.connection.cursor()
 
     def start_func(self,
-                   avib_id,
-                   avib_date,
-                   avib_name,
-                   avib_type,
+                   vib_url,
+                   vib_date,
+                   vib_name,
+                   vib_type,
                    # cand_name,
                    # birth_date,
                    # party,
@@ -25,8 +25,10 @@ class DbAdmin:
                    # izbr,
                    # party_name
                    ):
-        self.cursor.execute('''select politicians.raw_data(%s::bigint, %s::date, %s::text, %s::text) ;''', (avib_id, avib_date, avib_name, avib_type,))
+        self.cursor.execute('''select politicians.raw_data(%s::text, %s::date, %s::text, %s::int) ;''', (vib_url, vib_date, vib_name, vib_type,))
         self.connection.commit()
+        # self.connection.close()
+
     def set_func(self):
         self.cursor.execute('''
                 START TRANSACTION ;
@@ -53,23 +55,6 @@ class DbAdmin:
                 COMMIT TRANSACTION ;
         ''')
         self.connection.commit()
-        #self.connection.close()
-
-    def delete_single(self, table, column, parameter):
-        self.cursor.execute('''DELETE FROM {0} WHERE {1} = {2}'''.format(table, column, parameter))
-        return self.connection.commit()
-
-    def delete(self, table, parameter):
-        self.cursor.execute('''DELETE FROM {0} WHERE {1}'''.format(table, parameter))
-        return self.connection.commit()
-
-    def insert(self, tablecolumns, values):
-        self.cursor.execute("""INSERT INTO {0} VALUES {1};""".format(tablecolumns, values))
-        return self.connection.commit()
-
-    def update(self, table, values, condition):
-        self.cursor.execute("""UPDATE {0} SET {1} WHERE {2}""".format(table, values, condition))
-        return self.connection.commit()
 
     def close(self):
         self.connection.close()

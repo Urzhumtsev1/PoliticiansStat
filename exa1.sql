@@ -12,6 +12,7 @@ create table  politicians.vibory (
    vib_date date not null,
    vib_name text not null,
    vib_type int not null,
+   vib_region int not null,
    constraint vibory_pkey primary key (vib_date, vib_name)
 ) ;
 
@@ -37,7 +38,7 @@ create or replace function
 politicians.raw_data ( avib_url text, 
                        avib_date date, 
                        avib_name text, 
-                       avib_type text ) 
+                       avib_type int ) 
    returns text
    language plpgsql
    security definer

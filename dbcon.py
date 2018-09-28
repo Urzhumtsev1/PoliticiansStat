@@ -17,6 +17,7 @@ class DbAdmin:
                    vib_date,
                    vib_name,
                    vib_type,
+                   vib_region
                    # cand_name,
                    # birth_date,
                    # party,
@@ -25,35 +26,12 @@ class DbAdmin:
                    # izbr,
                    # party_name
                    ):
-        self.cursor.execute('''select politicians.raw_data(%s::text, %s::date, %s::text, %s::int) ;''', (vib_url, vib_date, vib_name, vib_type,))
+        self.cursor.execute('''select politicians.raw_data(%s::text, %s::date, %s::text, %s::int, %s::int) ;''', (vib_url, vib_date, vib_name, vib_type, vib_region))
         self.connection.commit()
         # self.connection.close()
 
-    def set_func(self):
-        self.cursor.execute('''
-                START TRANSACTION ;
-                
-                create or replace function
-                politicians.raw_data ( avib_id bigint, 
-                                       avib_date date, 
-                                       avib_name text, 
-                                       avib_type text ) 
-                   returns text
-                   language plpgsql
-                   security definer
-                   returns null on null input
-                   volatile
-                   set search_path = politicians, public
-                   as
-                $$
-                BEGIN
-                   INSERT INTO vibory (vib_id, vib_date, vib_name, vib_type) VALUES (avib_id, avib_date, avib_name, avib_type) ;
-                   return 0 ;
-                END ;
-                $$ ;
-                
-                COMMIT TRANSACTION ;
-        ''')
+    def temp_table(self, vib_type, vib_region):
+        self.cursor.execute('''select politicians.func_type_and_region_temp(%s::int, %s::int) ;''', (vib_type, vib_region))
         self.connection.commit()
 
     def close(self):

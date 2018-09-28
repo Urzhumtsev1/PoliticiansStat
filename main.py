@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-import requests
-from selenium.webdriver.support.ui import Select
-from bs4 import BeautifulSoup
-from time import sleep
 import re
 from multiprocessing import Pool
+from time import sleep
+
+import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import Select
+
 import dbcon
 
 
@@ -64,7 +66,7 @@ class MyParser(object):
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_name = self.driver.find_elements_by_class_name('w2')
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, level)
+                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0)
                 db.close()
                 return print('OK')
             elif '=220' in url:
@@ -77,7 +79,7 @@ class MyParser(object):
                 vib_url = self.driver.current_url
                 vib_name = self.driver.find_elements_by_class_name('w2')
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, level)
+                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0)
                 db.close()
                 return print('OK')
         finally:
@@ -94,7 +96,6 @@ def reg_exp1(data):
 
 # Первая функция, в которую задаем нужные нам параметры
 def begin():
-    global level
     start_date = input('Укажите начальную дату (пример: 01.01.2018)\n ')
     end_date = input("Укажите конечную дату (пример: 31.12.2018)\n ")
     level = input('Укажите уровень выборов:\n '
@@ -105,6 +106,9 @@ def begin():
                   )
     print("HINT: Узнать код региона: https://calcus.ru/kody-regionov")
     region = input("Укажите код региона РФ:\n ")
+    db = dbcon.DbAdmin()
+    db.temp_table(int(level), int(region))
+    db.close()
     values = [start_date, end_date, level, region]
     return values
 

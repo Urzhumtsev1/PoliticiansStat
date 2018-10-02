@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import Select
+from lxml import html
 
 import dbcon
 
@@ -60,38 +61,41 @@ class MyParser(object):
             # reg_exp1(element) вызываем функцию поиска кандидатов по шаблону
             if '=221' in url:
                 # TODO - тут не доделано
-                result = re.findall(r'table-[1-2]', s)
-                element = self.driver.find_element_by_id(result[0])
                 vib_url = self.driver.current_url
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_name = self.driver.find_elements_by_class_name('w2')
+                tree = html.fromstring(s)
+                quantity = re.search(r'\s{10,}\d+', s).group()
+                iterator = int(quantity)
+                vib_birthday = get_birthday(iterator, tree)
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0)
+                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0, 0,vib_birthday,0,0,0,0,0)
                 db.close()
                 return print('OK')
             elif '=220' in url:
                 input_element = self.driver.find_element_by_id("csearch_vidvig")
                 input_element.send_keys("в")
                 input_element.submit()
-                result1 = re.findall(r'table-[1-2]', s)
-                element = self.driver.find_element_by_id(result1[0])
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_url = self.driver.current_url
                 vib_name = self.driver.find_elements_by_class_name('w2')
+                tree = html.fromstring(s)
+                quantity = re.search(r'\s{10,}\d+', s).group()
+                iterator = int(quantity)
+                vib_birthday = get_birthday(iterator, tree)
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0)
+                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0,0,vib_birthday,0,0,0,0,0)
                 db.close()
                 return print('OK')
         finally:
             self.driver.quit()
 
 
-# Ищем по шаблону в html кандидатов
-def reg_exp1(data):
-    # TODO - сейчас не парсит если кандидат без отчества
-    pattern = r"\d+\s[А-Яа-я\-?]+\s[А-Яа-я]+\s[А-Яа-я?]+\s\d{2}\.\d{2}\.\d{4}.*"
-    result2 = re.findall(pattern, data.text)
-    return result2
+# Ищем по шаблону в html данные кандидатов
+def get_birthday(iterator, data):
+    for i in range(iterator):
+        abname = str(data.xpath('//*[@id="test"]/tr["{}"]/td[3]/text()')).format(i)
+        return abname
 
 
 # Первая функция, в которую задаем нужные нам параметры
@@ -149,8 +153,9 @@ def req():
     # REMINDER - первая функция в которую задаем параметры поиска
     params = begin()
     # Вставляем параметры поиска выборов в автоматизированный браузер (вернет html со списком выборов)
+    target_page = MyParser(url).service(params[0], params[1], params[2], params[3])
     # Далее полученный html обрабатываем BS и получаем список ссылок с выборами
-    link = Soup(MyParser(url).service(params[0], params[1], params[2], params[3])).soup1()
+    link = Soup(target_page).soup1()
     link2 = []
     for i in range(len(link)):
         # Переходим по ссылкам из списка выборов

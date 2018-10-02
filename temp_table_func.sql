@@ -8,12 +8,13 @@ politicians.func_type_and_region_temp(avib_type int, avib_region int )
    as
 $$
 BEGIN
-   create temporary table temp01 (
-      vib_type int,
-      vib_region int
+   create table if not exists politicians.temp01 (
+      query_num bigserial not null,
+      vib_type int not null,
+      vib_region int not null
     )  ;
    
-   INSERT INTO temp01 (vib_type, vib_region) VALUES (avib_type, avib_region) ;
+   INSERT INTO politicians.temp01 (vib_type, vib_region) VALUES (avib_type, avib_region) ;
 
    return 0 ;
 END ;

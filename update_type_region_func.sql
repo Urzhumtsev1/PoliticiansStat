@@ -5,31 +5,27 @@ politicians.func_type_and_region() returns trigger
    called on null input
    volatile
    language plpgsql
-   set search_path = politicians, public
    as
 
 $$
 BEGIN
    with 
-   one as (
+   vt as (
       select 
-            tmp.vib_type   as type,
-            tmp.vib_region as region
-         from temp01 as tmp
-   ),
-
-   two as (
-      select
-            vib_type,
-            vib_region
-         from politicians.vibory 
+            vib_type as type,
+            vib_region as region
+         from politicians.temp01
+         order by query_num desc
+         limit 1
    )
 
    update politicians.vibory
-      set vib_type    = one.type,
-          vib_region  = one.region
-      where two.vib_type = 0 ;
+      set vib_type    = vt.type,
+          vib_region  = vt.region
+      from vt
+      where politicians.vibory.vib_type = 0 ;
       
+   -- delete from politicians.temp01 ;
    return null ;
 END ;
 $$ ;

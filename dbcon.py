@@ -12,59 +12,66 @@ class DbAdmin:
                                            )
         self.cursor = self.connection.cursor()
 
-    def start_func(self,
-                   vib_url,
-                   vib_date,
-                   vib_name,
-                   vib_type,
-                   vib_region,
-                   cand_url, 
-                   cand_name, 
-                   birth_date, 
-                   party, 
-                   vidvizh, 
-                   regisrt, 
-                   izbir
-                   ):
-        self.cursor.execute('''select politicians.raw_data(%s::text, 
-                                                           %s::date, 
-                                                           %s::text, 
-                                                           %s::int, 
-                                                           %s::int
-                                                           ) ;''', (vib_url, 
-                                                                    vib_date, 
-                                                                    vib_name, 
-                                                                    vib_type, 
-                                                                    vib_region
-                                                                    )
-                            )
-        self.cursor.execute('''select politicians.raw_candidates(%s::text, 
-                                                                 %s::text, 
-                                                                 %s::text, 
-                                                                 %s::date, 
-                                                                 %s::text, 
-                                                                 %s::text, 
-                                                                 %s::text, 
-                                                                 %s::text
-                                                                 ) ;''', (vib_url, 
-                                                                          cand_url, 
-                                                                          cand_name, 
-                                                                          birth_date, 
-                                                                          party, 
-                                                                          vidvizh, 
-                                                                          regisrt, 
-                                                                          izbir
-                                                                          )
+    def vibory_insert(self,
+                      vib_url,
+                      vib_date,
+                      vib_name,
+                      vib_type,
+                      vib_region
+                      ):
+        self.cursor.execute('''
+            select politicians.raw_data(%s::text, 
+                                        %s::date, 
+                                        %s::text, 
+                                        %s::int, 
+                                        %s::int
+                                        ) ;''', (vib_url,
+                                                 vib_date,
+                                                 vib_name,
+                                                 vib_type,
+                                                 vib_region
+                                                 )
                             )
         self.connection.commit()
-        # self.connection.close()
+
+    def candidates_insert(self,
+                          vib_url,
+                          cand_url,
+                          cand_name,
+                          birth_date,
+                          party,
+                          vidvizh,
+                          regisrt,
+                          izbir
+                          ):
+        self.cursor.execute('''
+            select politicians.raw_candidates(%s::text, 
+                                              %s::text, 
+                                              %s::text, 
+                                              %s::date, 
+                                              %s::text, 
+                                              %s::text, 
+                                              %s::text, 
+                                              %s::text
+                                              ) ;''',  (vib_url,
+                                                        cand_url,
+                                                        cand_name,
+                                                        birth_date,
+                                                        party,
+                                                        vidvizh,
+                                                        regisrt,
+                                                        izbir
+                                                        )
+                            )
+        self.connection.commit()
 
     def temp_table(self, vib_type, vib_region):
-        self.cursor.execute('''select politicians.func_type_and_region_temp(%s::int, 
-                                                                            %s::int
-                                                                            ) ;''', (vib_type, 
-                                                                                     vib_region
-                                                                                     )
+        self.cursor.execute('''
+            select politicians.func_type_and_region_temp(%s::int, 
+                                                         %s::int
+                                                         ) ;''', (vib_type,
+                                                                  vib_region
+                                                                  )
                             )
         self.connection.commit()
 

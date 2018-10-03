@@ -65,11 +65,20 @@ class MyParser(object):
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_name = self.driver.find_elements_by_class_name('w2')
                 tree = html.fromstring(s)
-                quantity = re.search(r'\s{10,}\d+', s).group()
+                quantity = re.search(r'\s{8,}\d+', s).group()
                 iterator = int(quantity)
-                vib_birthday = get_birthday(iterator, tree)
+                cand_info = get_info(tree)
+                for i in range(iterator):
+                    cand_birth_date = cand_info.birth_date[i][0]
+                    cand_party = cand_info.party[i]
+                    cand_vidvizh = cand_info.vidvizh[i][0]
+                    cand_registr = cand_info.registr[i][0]
+                    cand_izbir = cand_info.izbir[i][0]
+                    db = dbcon.DbAdmin()
+                    x = lambda x: x + x
+                    db.candidates_insert(vib_url, x(1), x("a"), cand_birth_date, cand_party, cand_vidvizh, cand_registr, cand_izbir)
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0, 0,vib_birthday,0,0,0,0,0)
+                db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
                 db.close()
                 return print('OK')
             elif '=220' in url:
@@ -82,9 +91,9 @@ class MyParser(object):
                 tree = html.fromstring(s)
                 quantity = re.search(r'\s{10,}\d+', s).group()
                 iterator = int(quantity)
-                vib_birthday = get_birthday(iterator, tree)
+
                 db = dbcon.DbAdmin()
-                db.start_func(vib_url, vib_date, vib_name[1].text, 0, 0,0,vib_birthday,0,0,0,0,0)
+                db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
                 db.close()
                 return print('OK')
         finally:
@@ -92,10 +101,21 @@ class MyParser(object):
 
 
 # Ищем по шаблону в html данные кандидатов
-def get_birthday(iterator, data):
-    for i in range(iterator):
-        abname = str(data.xpath('//*[@id="test"]/tr["{}"]/td[3]/text()')).format(i)
-        return abname
+def get_info(data):
+    class Candidate(object):
+        def __init__(self, birth_date, party, vidvizh, registr, izbir):
+            self.birth_date = birth_date
+            self.party = party
+            self.vidvizh = vidvizh
+            self.registr = registr
+            self.izbir = izbir
+    birth_date = str(data.xpath('//*[@id="test"]/tr["{}"]/td[3]/text()'))
+    party = str(data.xpath('//*[@id="test"]/tr["{}"]/td[4]/text()'))
+    vidvizh = str(data.xpath('//*[@id="test"]/tr["{}"]/td[7]/text()'))
+    regisrt = str(data.xpath('//*[@id="test"]/tr["{}"]/td[8]/text()'))
+    izbir = str(data.xpath('//*[@id="test"]/tr["{}"]/td[9]/text()'))
+    candidate = Candidate(birth_date, party, vidvizh, regisrt, izbir)
+    return candidate
 
 
 # Первая функция, в которую задаем нужные нам параметры

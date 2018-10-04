@@ -41,8 +41,8 @@ class DbAdmin:
                           birth_date,
                           party,
                           vidvizh,
-                          regisrt,
-                          izbir
+                          registr,
+                          izbr
                           ):
         self.cursor.execute('''
             select politicians.raw_candidates(%s::text, 
@@ -59,8 +59,8 @@ class DbAdmin:
                                                         birth_date,
                                                         party,
                                                         vidvizh,
-                                                        regisrt,
-                                                        izbir
+                                                        registr,
+                                                        izbr
                                                         )
                             )
         self.connection.commit()

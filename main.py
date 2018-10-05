@@ -54,22 +54,27 @@ class MyParser(object):
         return self.driver.page_source
 
     def service2(self):
+        # TODO - упростить метод
         try:
-            # на 221 заканчиваются ссылки, где в форме поиска отсутствует возможность выбора "выдвижения"
+            # на 221 заканчиваются ссылки, где в форме поиска
+            # отсутствует возможность выбора "выдвижения"
             url = self.driver.current_url
             s = self.driver.page_source
             if '=221' in url:
-                # TODO - тут не доделано
+                self.driver.execute_script("javascript:document.forms['search'].submit();")
                 vib_url = self.driver.current_url
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_name = self.driver.find_elements_by_class_name('w2')
-                tree = html.fromstring(s)
+                tree = html.fromstring(self.driver.page_source)
                 quantity = re.search(r'\s{8,}\d+', s).group()
                 dif_pattern = re.search(r'отказе в регистрации,', s)
                 iterator = int(quantity)
                 cand_info = get_info(tree, dif_pattern)
-                cand_info2 = Soup(s).soup3()
+                cand_info2 = Soup(self.driver.page_source).soup3()
                 db = dbcon.DbAdmin()
+                # Передаем нули в vib_type и vib_region т.к. установлен
+                # триггер на insert, который потом вставит нужные данные из
+                # временной таблицы. Сделано для избежания глобальных переменных.
                 db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
                 for i in range(iterator):
                     db.candidates_insert(vib_url,
@@ -126,6 +131,7 @@ def get_info(data, dif_pattern):
     birth_date = data.xpath('//*[@id="test"]/tr/td[3]/text()')
     party = data.xpath('//*[@id="test"]/tr/td[4]/text()')
     if dif_pattern is not None:
+        # На парламентских выборах шаблон немного другой.
         vidvizh = data.xpath('//*[@id="test"]/tr/td[' + str(length - 4) + ']/text()')
         regisrt = data.xpath('//*[@id="test"]/tr/td[' + str(length - 3) + ']/text()')
         izbir = data.xpath('//*[@id="test"]/tr/td[' + str(length) + ']/text()')

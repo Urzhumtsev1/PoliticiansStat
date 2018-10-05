@@ -65,8 +65,9 @@ class MyParser(object):
                 vib_name = self.driver.find_elements_by_class_name('w2')
                 tree = html.fromstring(s)
                 quantity = re.search(r'\s{8,}\d+', s).group()
+                dif_pattern = re.search(r'отказе в регистрации,', s)
                 iterator = int(quantity)
-                cand_info = get_info(tree)
+                cand_info = get_info(tree, dif_pattern)
                 cand_info2 = Soup(s).soup3()
                 db = dbcon.DbAdmin()
                 db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
@@ -88,12 +89,23 @@ class MyParser(object):
                 vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
                 vib_url = self.driver.current_url
                 vib_name = self.driver.find_elements_by_class_name('w2')
-                tree = html.fromstring(s)
+                tree = html.fromstring(self.driver.page_source)
                 quantity = re.search(r'\s{10,}\d+', s).group()
+                dif_pattern = re.search(r'отказе в регистрации,', s)
                 iterator = int(quantity)
-
+                cand_info = get_info(tree, dif_pattern)
+                cand_info2 = Soup(self.driver.page_source).soup3()
                 db = dbcon.DbAdmin()
                 db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
+                for i in range(iterator):
+                    db.candidates_insert(vib_url,
+                                         cand_info2[i][0],
+                                         cand_info2[i][1],
+                                         cand_info.birth_date[i],
+                                         cand_info.party[i],
+                                         cand_info.vidvizh[i],
+                                         cand_info.registr[i],
+                                         cand_info.izbr[i])
                 db.close()
                 return print('OK')
         finally:
@@ -101,7 +113,7 @@ class MyParser(object):
 
 
 # Ищем в html данные кандидатов
-def get_info(data):
+def get_info(data, dif_pattern):
     class Candidate(object):
         def __init__(self, birth_date, party, vidvizh, registr, izbr):
             self.birth_date = birth_date
@@ -110,12 +122,18 @@ def get_info(data):
             self.registr = registr
             self.izbr = izbr
     # Парсим данные кандидата по xpath
-    birth_date = data.xpath('//*[@id="test"]/tr["{}"]/td[3]/text()')
-    party = data.xpath('//*[@id="test"]/tr["{}"]/td[4]/text()')
-    vidvizh = data.xpath('//*[@id="test"]/tr["{}"]/td[7]/text()')
-    regisrt = data.xpath('//*[@id="test"]/tr["{}"]/td[8]/text()')
-    izbr = data.xpath('//*[@id="test"]/tr["{}"]/td[9]/text()')
-    candidate = Candidate(birth_date, party, vidvizh, regisrt, izbr)
+    length = len(data.xpath('//*[@id="test"]/tr[1]/td'))
+    birth_date = data.xpath('//*[@id="test"]/tr/td[3]/text()')
+    party = data.xpath('//*[@id="test"]/tr/td[4]/text()')
+    if dif_pattern is not None:
+        vidvizh = data.xpath('//*[@id="test"]/tr/td[' + str(length - 4) + ']/text()')
+        regisrt = data.xpath('//*[@id="test"]/tr/td[' + str(length - 3) + ']/text()')
+        izbir = data.xpath('//*[@id="test"]/tr/td[' + str(length) + ']/text()')
+    else:
+        vidvizh = data.xpath('//*[@id="test"]/tr/td[' + str(length - 2) + ']/text()')
+        regisrt = data.xpath('//*[@id="test"]/tr/td[' + str(length - 1) + ']/text()')
+        izbir = data.xpath('//*[@id="test"]/tr/td[' + str(length) + ']/text()')
+    candidate = Candidate(birth_date, party, vidvizh, regisrt, izbir)
     return candidate
 
 
@@ -143,7 +161,6 @@ class Soup(object):
         self.blank = BeautifulSoup(html, "html.parser")
 
     def soup1(self):
-        # TODO - убрать get_text нигде не используется
         # В этом цикле BS возвращает список ссылок найденых выборов. Это еще не те ссылки, что нам нужны.
         vib_name = []
         for tmp in self.blank.find_all('a'):

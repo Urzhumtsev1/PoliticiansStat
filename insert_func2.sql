@@ -16,11 +16,26 @@ politicians.raw_candidates ( avib_url text,
    as
 $$
 BEGIN
-   INSERT INTO candidates (
-      vib_url, cand_url, cand_name, birth_date, party, vidvizh, registr, izbr
-    ) VALUES (
-        avib_url, acand_url, acand_name, abirth_date, aparty, avidvizh, aregistr, aizbr
-    ) ;
+   INSERT INTO candidates ( vib_url, 
+                            cand_url, 
+                            cand_name, 
+                            birth_date, 
+                            party, 
+                            vidvizh, 
+                            registr, 
+                            izbr
+                           ) 
+      VALUES ( avib_url, 
+               acand_url, 
+               acand_name, 
+               abirth_date, 
+               aparty, 
+               avidvizh, 
+               aregistr, 
+               aizbr
+    ) 
+   on conflict (cand_url, cand_name)
+   do nothing;
    return 0 ;
 END ;
 $$ ;

@@ -65,6 +65,7 @@ class DbAdmin:
                             )
         self.connection.commit()
 
+    # TODO - что-то с этой таблицей надо придумать... временная не годится так как несколько сеансов подключения.
     def temp_table(self, vib_type, vib_region):
         self.cursor.execute('''
             select politicians.func_type_and_region_temp(%s::int, 

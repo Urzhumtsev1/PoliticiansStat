@@ -13,7 +13,20 @@ politicians.raw_data ( avib_url text,
    as
 $$
 BEGIN
-   INSERT INTO vibory (vib_url, vib_date, vib_name, vib_type, vib_region) VALUES (avib_url, avib_date, avib_name, avib_type, avib_region) ;
+   INSERT INTO vibory ( vib_url, 
+                        vib_date, 
+                        vib_name, 
+                        vib_type, 
+                        vib_region
+                      ) 
+     VALUES ( avib_url, 
+              avib_date, 
+              avib_name, 
+              avib_type, 
+              avib_region
+            ) 
+   on conflict (vib_date, vib_name)
+   do nothing ;
    return 0 ;
 END ;
 $$ ;

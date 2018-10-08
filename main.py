@@ -54,65 +54,38 @@ class MyParser(object):
         return self.driver.page_source
 
     def service2(self):
-        # TODO - упростить метод
+        s = self.driver.page_source
         try:
-            # на 221 заканчиваются ссылки, где в форме поиска
-            # отсутствует возможность выбора "выдвижения"
-            url = self.driver.current_url
-            s = self.driver.page_source
-            if '=221' in url:
-                self.driver.execute_script("javascript:document.forms['search'].submit();")
-                vib_url = self.driver.current_url
-                vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
-                vib_name = self.driver.find_elements_by_class_name('w2')
-                tree = html.fromstring(self.driver.page_source)
-                quantity = re.search(r'\s{8,}\d+', s).group()
-                dif_pattern = re.search(r'отказе в регистрации,', s)
-                iterator = int(quantity)
-                cand_info = get_info(tree, dif_pattern)
-                cand_info2 = Soup(self.driver.page_source).soup3()
-                db = dbcon.DbAdmin()
-                # Передаем нули в vib_type и vib_region т.к. установлен
-                # триггер на insert, который потом вставит нужные данные из
-                # временной таблицы. Сделано для избежания глобальных переменных.
-                db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
-                for i in range(iterator):
-                    db.candidates_insert(vib_url,
-                                         cand_info2[i][0],
-                                         cand_info2[i][1],
-                                         cand_info.birth_date[i],
-                                         cand_info.party[i],
-                                         cand_info.vidvizh[i],
-                                         cand_info.registr[i],
-                                         cand_info.izbr[i])
-                db.close()
-                return print('OK')
-            elif '=220' in url:
-                input_element = self.driver.find_element_by_id("csearch_vidvig")
-                input_element.send_keys("в")
-                input_element.submit()
-                vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
-                vib_url = self.driver.current_url
-                vib_name = self.driver.find_elements_by_class_name('w2')
-                tree = html.fromstring(self.driver.page_source)
-                quantity = re.search(r'\s{10,}\d+', s).group()
-                dif_pattern = re.search(r'отказе в регистрации,', s)
-                iterator = int(quantity)
-                cand_info = get_info(tree, dif_pattern)
-                cand_info2 = Soup(self.driver.page_source).soup3()
-                db = dbcon.DbAdmin()
-                db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
-                for i in range(iterator):
-                    db.candidates_insert(vib_url,
-                                         cand_info2[i][0],
-                                         cand_info2[i][1],
-                                         cand_info.birth_date[i],
-                                         cand_info.party[i],
-                                         cand_info.vidvizh[i],
-                                         cand_info.registr[i],
-                                         cand_info.izbr[i])
-                db.close()
-                return print('OK')
+            # Нажимаем кнопочку искать, чтобы вывести полный список кандидатов
+            self.driver.execute_script("javascript:document.forms['search'].submit();")
+            sleep(1)
+            vib_url = self.driver.current_url
+            vib_date = re.search(r'\d\d\.\d\d\.\d{4}', s).group()
+            vib_name = self.driver.find_elements_by_class_name('w2')
+            # Не используем переменную s так как html поменялся.
+            tree = html.fromstring(self.driver.page_source)
+            quantity = re.search(r'\s{8,}\d+', s).group()
+            # Для нестандартного шаблона вывода списка кандидатов
+            dif_pattern = re.search(r'отказе в регистрации,', s)
+            iterator = int(quantity)
+            cand_info = get_info(tree, dif_pattern)
+            cand_info2 = Soup(self.driver.page_source).soup3()
+            db = dbcon.DbAdmin()
+            # Передаем нули в vib_type и vib_region т.к. установлен
+            # триггер на insert, который потом вставит нужные данные из
+            # временной таблицы. Сделано для избежания глобальных переменных.
+            db.vibory_insert(vib_url, vib_date, vib_name[1].text, 0, 0)
+            for i in range(iterator):
+                db.candidates_insert(vib_url,
+                                     cand_info2[i][0],
+                                     cand_info2[i][1],
+                                     cand_info.birth_date[i],
+                                     cand_info.party[i],
+                                     cand_info.vidvizh[i],
+                                     cand_info.registr[i],
+                                     cand_info.izbr[i])
+            db.close()
+            return print('OK')
         finally:
             self.driver.quit()
 
@@ -229,11 +202,9 @@ def req2(url):
 
 def req3():
     link = req()
-    # for i in range(len(link)):
     with Pool(5) as p:
         p.map(req2, link)
 
 
 if __name__ == '__main__':
-
     req3()

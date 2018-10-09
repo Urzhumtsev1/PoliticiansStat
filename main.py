@@ -19,7 +19,8 @@ class MyParser(object):
             options = webdriver.ChromeOptions()
             # чтобы не открывалось окно браузера
             options.add_argument("--headless")
-            self.driver = webdriver.Chrome(chrome_options=options, executable_path='C:\Program Files\chromedriver.exe')
+            self.driver = webdriver.Chrome(chrome_options=options,
+                                           executable_path='C:\Program Files\chromedriver.exe')
             try:
                 self.driver.set_page_load_timeout(30)
                 self.driver.get(url[0])
@@ -30,6 +31,8 @@ class MyParser(object):
 
     def service(self, start_date, end_date, level, region):
         # TODO - Сделать еще фильтров
+        # TODO - Логи, докачку
+        # TODO - Счетчик закгрузки
         print("Выставление параметров     ", end='', flush=True)
         # Очищаем форму начальной даты и вставляем необходимые параметры
         # не стоит вводить дату ранее 2 сентября 2007 года (тогда был другой вид отчета)
@@ -126,7 +129,7 @@ def begin():
                   '"3" - Административный центр,\n '
                   '"4" - Местное самоуправление.\n '
                   )
-    print("HINT: Узнать код региона: https://calcus.ru/kody-regionov")
+    print("HINT: Узнать код региона: https://yadi.sk/i/222tNPSqdz276w")
     region = input("Укажите код региона РФ:\n ")
     db = dbcon.DbAdmin()
     db.temp_table(int(level), int(region))

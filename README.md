@@ -40,6 +40,7 @@
 
 ## Запуск
 >git clone https://github.com/Urzhumtsev1/PoliticiansStat.git
+
 >python main.py
 
 Набираем начальную дату в формате 01.11.2011
